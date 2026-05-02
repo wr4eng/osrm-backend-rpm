@@ -105,6 +105,7 @@ PYEOF
 %build
 export OSMIUM_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/libosmium-2.20.0/include
 export SOL2_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/sol2-3.3.0/include
+export BOOST178_CMAKE_DIR=/usr/lib64/boost1.78
 
 mkdir -p %{_vpath_builddir}
 cd %{_vpath_builddir}
@@ -125,7 +126,11 @@ cd %{_vpath_builddir}
     -DBUILD_LIBRARY=ON \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++17 -Wno-maybe-uninitialized" \
+    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++17 -Wno-maybe-uninitialized -I/usr/include/boost1.78" \
+    -DCMAKE_PREFIX_PATH=/usr/lib64/boost1.78 \
+    -DBoost_ROOT=/usr/lib64/boost1.78 \
+    -DBOOST_INCLUDEDIR=/usr/include/boost1.78 \
+    -DBOOST_LIBRARYDIR=/usr/lib64/boost1.78/lib \    
     -Dlibosmium_INCLUDE_DIR=${OSMIUM_INCLUDE_DIR} \
     -Dsol2_INCLUDE_DIR=${SOL2_INCLUDE_DIR} \
     ..
