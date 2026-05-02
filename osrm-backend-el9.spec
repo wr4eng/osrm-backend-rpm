@@ -13,19 +13,6 @@ Source2:        osrm-backend.env
 Source10:       https://github.com/osmcode/libosmium/archive/refs/tags/v2.20.0.tar.gz#/libosmium-2.20.0.tar.gz
 Source11:       https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz#/sol2-3.3.0.tar.gz
 
-# GCC 11 (RHEL 9) does not support incomplete types as std::variant alternatives.
-# json_container.hpp forward-declares Object/Array then immediately defines
-#   using Value = std::variant<..., Object, Array, ...>
-# before those structs are complete, causing "too many initializers" and
-# "no match for operator=" in the EXTRACTOR target.
-# Fix: forward-declare Value as a named struct, define Object/Array fully
-# (std::vector<Value>/unordered_map<string,Value> are fine with an incomplete
-# value type), then define Value as a struct inheriting the variant so
-# std::visit and all Renderer<> overloads work without any API change.
-# Also changes the Object map key from std::string_view to std::string, which
-# is a correctness fix (owning map must not hold non-owning keys).
-Patch3:         osrm-backend-gcc11-variant.patch
-
 BuildRequires:  cmake >= 3.18
 BuildRequires:  gcc-c++
 BuildRequires:  pkgconf-pkg-config
@@ -65,6 +52,87 @@ tar -xzf %{SOURCE11}
 grep -rl --include="CMakeLists.txt" --include="*.cmake" "\-Werror" . | \
     xargs sed -i 's/-Werror\b/-Wno-error/g'
 
+# Fix std::variant instantiation failure on GCC 11 (EL9) in json_container.hpp.
+#
+# The file defines Object and Array as incomplete (forward-declared) types and
+# then immediately instantiates:
+#   using Value = std::variant<..., Object, Array, ...>;
+# before their definitions are complete.  GCC 11's libstdc++ requires all
+# std::variant alternatives to be complete at instantiation time; GCC 12+
+# relaxed this restriction.  The result is "too many initializers" and
+# "no match for operator=" errors that abort the EXTRACTOR target.
+#
+# Strategy: use Python to rewrite the file in-place.  This avoids the
+# line-number and context sensitivity of a unified diff patch and works
+# regardless of whether the file has a copyright header or not.
+python3 - << 'PYEOF'
+import re, pathlib
+
+path = pathlib.Path("include/util/json_container.hpp")
+src  = path.read_text()
+
+# 1. Add <memory> include if not already present (needed for nothing here,
+#    but kept for clarity; the real fix is structural).
+
+# 2. Replace the block:
+#      // fwd. decls.
+#      struct Object;
+#      struct Array;
+#    with just a forward-declaration of Value.
+src = re.sub(
+    r'// fwd\. decls\.\nstruct Object;\nstruct Array;\n',
+    '// Forward-declare Value so Object/Array can be fully defined first.\nstruct Value;\n',
+    src,
+)
+
+# 3. Replace:
+#      using Value = std::variant<String, Number, Object, Array, True, False, Null>;
+#    with a forward declaration (already done above) — remove this line.
+src = re.sub(
+    r'using Value = std::variant<[^;]+>;\n',
+    '',
+    src,
+)
+
+# 4. Fix Object map key: std::string_view -> std::string
+#    (string_view keys in an owning map are a dangling-reference hazard and
+#     also cause issues when the map is copied or moved.)
+src = src.replace(
+    'std::unordered_map<std::string_view, Value>',
+    'std::unordered_map<std::string, Value>',
+)
+
+# 5. After the closing brace of struct Array, insert the full Value definition
+#    as a named struct that inherits std::variant.  At this point Object and
+#    Array are both complete, so the variant instantiation succeeds on GCC 11.
+#    The struct Value inherits all constructors and assignment operators so
+#    std::visit and all Renderer<> operator() overloads work without change.
+insertion = (
+    '\n'
+    '// Value is a named struct inheriting std::variant so that:\n'
+    '//  1. Its forward declaration above lets Object/Array use it by value.\n'
+    '//  2. Object and Array are complete types by the time the variant is\n'
+    '//     instantiated here, satisfying GCC 11 libstdc++ requirements.\n'
+    '//  3. std::visit dispatches through the variant base; all existing\n'
+    '//     Renderer<> operator()(const T&) overloads continue to match.\n'
+    'struct Value : std::variant<String, Number, Object, Array, True, False, Null>\n'
+    '{\n'
+    '    using variant::variant;\n'
+    '    using variant::operator=;\n'
+    '};\n'
+)
+# Insert after the closing brace+semicolon of struct Array { ... };
+src = re.sub(
+    r'(struct Array\s*\{[^}]*\};)',
+    r'\1' + insertion,
+    src,
+    flags=re.DOTALL,
+)
+
+path.write_text(src)
+print("json_container.hpp patched successfully.")
+PYEOF
+
 %build
 export OSMIUM_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/libosmium-2.20.0/include
 export SOL2_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/sol2-3.3.0/include
@@ -72,9 +140,6 @@ export SOL2_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/sol2-3.3.0/include
 mkdir -p %{_vpath_builddir}
 cd %{_vpath_builddir}
 
-# OSRM 26.x requires C++20 for several features. The variant patch above makes
-# json_container.hpp compile on GCC 11 without relying on GCC 12+ / libstdc++
-# improvements to std::variant with incomplete types.
 %{__cmake} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_FLAGS_RELEASE:STRING="-DNDEBUG" \
@@ -163,15 +228,15 @@ fi
 
 %changelog
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-5
-- Add Patch3: osrm-backend-gcc11-variant.patch
-  Fix std::variant instantiation failure on GCC 11 (RHEL 9/EL9):
-  json_container.hpp defined Object/Array as incomplete types at the point
-  std::variant was instantiated, causing "too many initializers" and
-  "no match for operator=" errors in the EXTRACTOR target.
-  Restructure: forward-declare Value as a named struct, define Object/Array
-  fully before the variant, then define Value inheriting std::variant so
-  std::visit and all Renderer<> call-sites work without API changes.
-  Also fixes Object key type from std::string_view to std::string (correctness).
+- Replace brittle unified-diff Patch3 with an inline Python rewrite in %%prep
+  to fix std::variant instantiation on GCC 11 (EL9).  The patch approach
+  failed because the file's copyright header shifted all context line numbers.
+  The Python script matches on text patterns, not line numbers, so it works
+  regardless of header length or minor upstream whitespace changes.
+  Structural fix: forward-declare Value as a struct, fully define Object/Array
+  before the variant instantiation, then define Value inheriting std::variant
+  so std::visit and all Renderer<> overloads work without API change.
+  Also changes Object map key from std::string_view to std::string (correctness).
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-4
 - Force C++20 via -DCMAKE_CXX_STANDARD=20 and -std=c++20 to fix std::variant
   template instantiation failures in EXTRACTOR target on GCC 11 (RHEL 9)
