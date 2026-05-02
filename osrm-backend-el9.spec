@@ -24,6 +24,7 @@ BuildRequires:  lua-devel
 BuildRequires:  fmt-devel
 BuildRequires:  zlib-devel
 BuildRequires: tbb-devel
+BuildRequires: python3
 
 Requires:       boost
 Requires:       lua
