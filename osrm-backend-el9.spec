@@ -23,6 +23,7 @@ BuildRequires:  boost-devel >= 1.70
 BuildRequires:  lua-devel >= 5.3
 BuildRequires:  tbb-devel >= 2020
 BuildRequires:  fmt-devel >= 8.0
+BuildRequires:  zlib-devel
 
 Requires:       boost >= 1.75
 Requires:       lua >= 5.3
@@ -156,3 +157,4 @@ fi
 - Removed RHEL 8 and Fedora conditionals
 * Fri May 01 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-1
 - Initial package for EPEL 9
+
