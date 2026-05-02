@@ -1,6 +1,6 @@
 Name:           osrm-backend
 Version:        26.4.1
-Release:        1%{?dist}
+Release:        4%{?dist}
 Summary:        High performance routing engine for OpenStreetMap data
 
 %undefine _lto_cflags
@@ -23,7 +23,6 @@ BuildRequires:  boost-devel >= 1.70
 BuildRequires:  lua-devel >= 5.3
 BuildRequires:  tbb-devel >= 2020
 BuildRequires:  fmt-devel >= 8.0
-BuildRequires: zlib-devel
 
 Requires:       boost >= 1.75
 Requires:       lua >= 5.3
@@ -38,8 +37,8 @@ Provides:       group(osrm)
 
 %description
 Open Source Routing Machine (OSRM) is a high-performance routing engine written
-in C++17 designed to run on OpenStreetMap data. It supports various routing
-services via HTTP API and C++ library interface including Route, Table,
+in C++17/C++20 designed to run on OpenStreetMap data. It supports various
+routing services via HTTP API and C++ library interface including Route, Table,
 Nearest, Match, Trip, and Tile.
 
 %prep
@@ -59,6 +58,9 @@ export SOL2_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/sol2-3.3.0/include
 mkdir -p %{_vpath_builddir}
 cd %{_vpath_builddir}
 
+# OSRM 26.x uses std::variant features that require C++20 on GCC 11 (RHEL 9).
+# Without -std=c++20 the compiler fails to instantiate complex variant templates
+# in the EXTRACTOR target ("too many initializers", "no match for operator=").
 %{__cmake} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_FLAGS_RELEASE:STRING="-DNDEBUG" \
@@ -73,7 +75,9 @@ cd %{_vpath_builddir}
     -DCMAKE_SKIP_RPATH=ON \
     -DBUILD_TOOLS=ON \
     -DBUILD_LIBRARY=ON \
-    -DCMAKE_CXX_FLAGS="%{optflags} -Wno-maybe-uninitialized" \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++20 -Wno-maybe-uninitialized" \
     -Dlibosmium_INCLUDE_DIR=${OSMIUM_INCLUDE_DIR} \
     -Dsol2_INCLUDE_DIR=${SOL2_INCLUDE_DIR} \
     ..
@@ -144,7 +148,11 @@ fi
 %license %{_licensedir}/%{name}/
 
 %changelog
-* Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-1
+* Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-4
+- Force C++20 via -DCMAKE_CXX_STANDARD=20 and -std=c++20 to fix std::variant
+  template instantiation failures in EXTRACTOR target on GCC 11 (RHEL 9)
+* Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-3
 - EL9-only build using bundled libosmium and sol2 via external sources
 - Removed RHEL 8 and Fedora conditionals
-
+* Fri May 01 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-1
+- Initial package for EPEL 9
