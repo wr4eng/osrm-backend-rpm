@@ -13,22 +13,22 @@ Source2:        osrm-backend.env
 Source10:       https://github.com/osmcode/libosmium/archive/refs/tags/v2.20.0.tar.gz#/libosmium-2.20.0.tar.gz
 Source11:       https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz#/sol2-3.3.0.tar.gz
 
-BuildRequires:  cmake >= 3.18
+BuildRequires:  cmake
 BuildRequires:  gcc-c++
 BuildRequires:  pkgconf-pkg-config
 BuildRequires:  expat-devel
 BuildRequires:  bzip2-devel
 BuildRequires:  systemd-rpm-macros
-BuildRequires:  boost-devel >= 1.70
-BuildRequires:  lua-devel >= 5.3
-BuildRequires:  tbb-devel >= 2020
-BuildRequires:  fmt-devel >= 8.0
+BuildRequires:  boost-devel
+BuildRequires:  lua-devel
+BuildRequires:  fmt-devel
 BuildRequires:  zlib-devel
+BuildRequires: tbb-devel
 
-Requires:       boost >= 1.75
-Requires:       lua >= 5.3
-Requires:       tbb >= 2020
-Requires:       fmt >= 8.0
+Requires:       boost
+Requires:       lua
+Requires:       tbb
+Requires:       fmt
 Requires:       expat
 Requires:       bzip2
 Requires(pre):  shadow-utils
