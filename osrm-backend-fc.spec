@@ -50,7 +50,7 @@ grep -rl --include="CMakeLists.txt" --include="*.cmake" "\-Werror" . | \
 
 # Fix missing <unistd.h> in io-benchmark.cpp — POSIX functions write/read/close/lseek
 # are used without the header, causing undeclared-function errors on strict compilers.
-sed -i '1s|^|#include <unistd.h>\n|' tools/io-benchmark.cpp
+sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 
 %build
 %cmake \
