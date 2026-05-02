@@ -155,9 +155,9 @@ cd %{_vpath_builddir}
     -DCMAKE_SKIP_RPATH=ON \
     -DBUILD_TOOLS=ON \
     -DBUILD_LIBRARY=ON \
-    -DCMAKE_CXX_STANDARD=20 \
+    -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++20 -Wno-maybe-uninitialized" \
+    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++17 -Wno-maybe-uninitialized" \
     -Dlibosmium_INCLUDE_DIR=${OSMIUM_INCLUDE_DIR} \
     -Dsol2_INCLUDE_DIR=${SOL2_INCLUDE_DIR} \
     ..
