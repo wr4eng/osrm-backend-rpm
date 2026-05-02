@@ -23,6 +23,7 @@ BuildRequires:  boost-devel >= 1.70
 BuildRequires:  lua-devel >= 5.3
 BuildRequires:  tbb-devel >= 2020
 BuildRequires:  fmt-devel >= 8.0
+BuildRequires: zlib-devel
 
 Requires:       boost >= 1.75
 Requires:       lua >= 5.3
@@ -146,3 +147,4 @@ fi
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-1
 - EL9-only build using bundled libosmium and sol2 via external sources
 - Removed RHEL 8 and Fedora conditionals
+
