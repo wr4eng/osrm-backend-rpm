@@ -1,6 +1,6 @@
 Name:           osrm-backend
 Version:        26.4.1
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        High performance routing engine for OpenStreetMap data
 
 %undefine _lto_cflags
@@ -47,6 +47,10 @@ Nearest, Match, Trip, and Tile.
 # Neutralize -Werror in all CMake files
 grep -rl --include="CMakeLists.txt" --include="*.cmake" "\-Werror" . | \
     xargs sed -i 's/-Werror\b/-Wno-error/g'
+
+# Fix missing <unistd.h> in io-benchmark.cpp — POSIX functions write/read/close/lseek
+# are used without the header, causing undeclared-function errors on strict compilers.
+sed -i '1s|^|#include <unistd.h>\n|' tools/io-benchmark.cpp
 
 %build
 %cmake \
@@ -126,6 +130,9 @@ fi
 %license %{_licensedir}/%{name}/
 
 %changelog
+* Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-5
+- Fix missing #include <unistd.h> in tools/io-benchmark.cpp; POSIX functions
+  write/read/close/lseek are undeclared without it on GCC with strict headers
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-4
 - Fedora-only build using system libosmium >= 2.23.1 and sol2 >= 3.5.0
 - Removed RHEL 8, RHEL 9, and all platform conditionals
