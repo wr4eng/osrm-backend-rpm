@@ -26,7 +26,7 @@ BuildRequires:  zlib-devel
 BuildRequires: tbb-devel
 BuildRequires: python3
 
-Requires:       boost
+Requires:       boost178-devel
 Requires:       lua
 Requires:       tbb
 Requires:       fmt
@@ -53,61 +53,29 @@ tar -xzf %{SOURCE11}
 grep -rl --include="CMakeLists.txt" --include="*.cmake" "\-Werror" . | \
     xargs sed -i 's/-Werror\b/-Wno-error/g'
 
-# Fix std::variant instantiation failure on GCC 11 (EL9) in json_container.hpp.
-#
-# The file defines Object and Array as incomplete (forward-declared) types and
-# then immediately instantiates:
-#   using Value = std::variant<..., Object, Array, ...>;
-# before their definitions are complete.  GCC 11's libstdc++ requires all
-# std::variant alternatives to be complete at instantiation time; GCC 12+
-# relaxed this restriction.  The result is "too many initializers" and
-# "no match for operator=" errors that abort the EXTRACTOR target.
-#
-# Strategy: use Python to rewrite the file in-place.  This avoids the
-# line-number and context sensitivity of a unified diff patch and works
-# regardless of whether the file has a copyright header or not.
 python3 - << 'PYEOF'
 import re, pathlib
 
 path = pathlib.Path("include/util/json_container.hpp")
 src  = path.read_text()
 
-# 1. Add <memory> include if not already present (needed for nothing here,
-#    but kept for clarity; the real fix is structural).
-
-# 2. Replace the block:
-#      // fwd. decls.
-#      struct Object;
-#      struct Array;
-#    with just a forward-declaration of Value.
 src = re.sub(
     r'// fwd\. decls\.\nstruct Object;\nstruct Array;\n',
     '// Forward-declare Value so Object/Array can be fully defined first.\nstruct Value;\n',
     src,
 )
 
-# 3. Replace:
-#      using Value = std::variant<String, Number, Object, Array, True, False, Null>;
-#    with a forward declaration (already done above) — remove this line.
 src = re.sub(
     r'using Value = std::variant<[^;]+>;\n',
     '',
     src,
 )
 
-# 4. Fix Object map key: std::string_view -> std::string
-#    (string_view keys in an owning map are a dangling-reference hazard and
-#     also cause issues when the map is copied or moved.)
 src = src.replace(
     'std::unordered_map<std::string_view, Value>',
     'std::unordered_map<std::string, Value>',
 )
 
-# 5. After the closing brace of struct Array, insert the full Value definition
-#    as a named struct that inherits std::variant.  At this point Object and
-#    Array are both complete, so the variant instantiation succeeds on GCC 11.
-#    The struct Value inherits all constructors and assignment operators so
-#    std::visit and all Renderer<> operator() overloads work without change.
 insertion = (
     '\n'
     '// Value is a named struct inheriting std::variant so that:\n'
@@ -122,7 +90,7 @@ insertion = (
     '    using variant::operator=;\n'
     '};\n'
 )
-# Insert after the closing brace+semicolon of struct Array { ... };
+
 src = re.sub(
     r'(struct Array\s*\{[^}]*\};)',
     r'\1' + insertion,
@@ -229,15 +197,7 @@ fi
 
 %changelog
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-5
-- Replace brittle unified-diff Patch3 with an inline Python rewrite in %%prep
-  to fix std::variant instantiation on GCC 11 (EL9).  The patch approach
-  failed because the file's copyright header shifted all context line numbers.
-  The Python script matches on text patterns, not line numbers, so it works
-  regardless of header length or minor upstream whitespace changes.
-  Structural fix: forward-declare Value as a struct, fully define Object/Array
-  before the variant instantiation, then define Value inheriting std::variant
-  so std::visit and all Renderer<> overloads work without API change.
-  Also changes Object map key from std::string_view to std::string (correctness).
+- Replace brittle unified-diff Patch3 with an inline Python rewrite.
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-4
 - Force C++20 via -DCMAKE_CXX_STANDARD=20 and -std=c++20 to fix std::variant
   template instantiation failures in EXTRACTOR target on GCC 11 (RHEL 9)
