@@ -13,21 +13,23 @@ Source2:        osrm-backend.env
 Source10:       https://github.com/osmcode/libosmium/archive/refs/tags/v2.20.0.tar.gz#/libosmium-2.20.0.tar.gz
 Source11:       https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz#/sol2-3.3.0.tar.gz
 
-BuildRequires:  cmake
-BuildRequires:  gcc-c++
-BuildRequires:  pkgconf-pkg-config
-BuildRequires:  expat-devel
-BuildRequires:  bzip2-devel
-BuildRequires:  systemd-rpm-macros
-BuildRequires:  boost-devel
-BuildRequires:  lua-devel
-BuildRequires:  fmt-devel
-BuildRequires:  zlib-devel
+BuildRequires: cmake
+BuildRequires: gcc-c++
+BuildRequires: pkgconf-pkg-config
+BuildRequires: expat-devel
+BuildRequires: bzip2-devel
+BuildRequires: systemd-rpm-macros
+BuildRequires: boost-devel
+BuildRequires: lua-devel
+BuildRequires: fmt-devel
+BuildRequires: zlib-devel
 BuildRequires: tbb-devel
 BuildRequires: python3
-Requires:       boost1.78-devel
+BuildRequires: gcc-toolset-12
+BuildRequires: boost1.78-devel
 
 Requires:       boost1.78
+Requires:       gcc-toolset-12
 Requires:       lua
 Requires:       tbb
 Requires:       fmt
@@ -97,6 +99,7 @@ print("json_container.hpp patched successfully.")
 PYEOF
 
 %build
+source /opt/rh/gcc-toolset-12/enable
 export OSMIUM_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/libosmium-2.20.0/include
 export SOL2_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/sol2-3.3.0/include
 export BOOST178_CMAKE_DIR=/usr/lib64/boost1.78
@@ -118,9 +121,9 @@ cd %{_vpath_builddir}
     -DCMAKE_SKIP_RPATH=ON \
     -DBUILD_TOOLS=ON \
     -DBUILD_LIBRARY=ON \
-    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_CXX_STANDARD=20 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++17 -Wno-maybe-uninitialized -I/usr/include/boost1.78" \
+    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++20 -Wno-maybe-uninitialized -I/usr/include/boost1.78" \
     -DCMAKE_PREFIX_PATH=/usr/lib64/boost1.78 \
     -DBoost_ROOT=/usr/lib64/boost1.78 \
     -DBOOST_INCLUDEDIR=/usr/include/boost1.78 \
