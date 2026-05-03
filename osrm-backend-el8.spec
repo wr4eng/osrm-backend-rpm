@@ -29,7 +29,6 @@ BuildRequires: gcc-toolset-12-gcc-c++
 BuildRequires: boost1.78-devel
 
 Requires:       boost1.78
-Requires:       gcc-toolset-12
 Requires:       lua
 Requires:       tbb
 Requires:       fmt
@@ -140,7 +139,7 @@ cd %{_vpath_builddir}
 %make_install
 cd ..
 
-# Move libraries from lib to lib64 if neededBuildRequires:  gcc-toolset-12-gcc-c++
+# Move libraries from lib to lib64 if needed
 if [ -d %{buildroot}%{_prefix}/lib ] && [ ! -d %{buildroot}%{_libdir} ]; then
     mkdir -p %{buildroot}%{_libdir}
     mv %{buildroot}%{_prefix}/lib/* %{buildroot}%{_libdir}/
