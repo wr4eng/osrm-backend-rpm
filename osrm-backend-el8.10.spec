@@ -12,7 +12,7 @@ Source1:        osrm-backend.service
 Source2:        osrm-backend.env
 Source10:       https://github.com/osmcode/libosmium/archive/refs/tags/v2.20.0.tar.gz#/libosmium-2.20.0.tar.gz
 Source11:       https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz#/sol2-3.3.0.tar.gz
-Source20:       https://archives.boost.io/release/1.90.0/source/boost-1.90.0.tar.gz
+Source20:       https://archives.boost.io/release/1.90.0/source/boost_1_90_0.tar.gz
 
 BuildRequires: cmake
 BuildRequires: gcc-c++
@@ -56,7 +56,7 @@ source /opt/rh/gcc-toolset-12/enable
 
 # --- Build private Boost 1.90.0 ---
 BOOST_PRIVATE=%{_builddir}/%{name}-%{version}/boost-private
-cd %{_builddir}/%{name}-%{version}/boost-1.90.0
+cd %{_builddir}/%{name}-%{version}/boost_1_90_0
 
 ./bootstrap.sh \
     --prefix=${BOOST_PRIVATE} \
