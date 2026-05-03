@@ -25,8 +25,9 @@ BuildRequires:  fmt-devel
 BuildRequires:  zlib-devel
 BuildRequires: tbb-devel
 BuildRequires: python3
+Requires:       boost1.78-devel
 
-Requires:       boost178-devel
+Requires:       boost1.78
 Requires:       lua
 Requires:       tbb
 Requires:       fmt
@@ -55,7 +56,6 @@ grep -rl --include="CMakeLists.txt" --include="*.cmake" "\-Werror" . | \
 
 python3 - << 'PYEOF'
 import re, pathlib
-
 path = pathlib.Path("include/util/json_container.hpp")
 src  = path.read_text()
 src = re.sub(
@@ -124,7 +124,7 @@ cd %{_vpath_builddir}
     -DCMAKE_PREFIX_PATH=/usr/lib64/boost1.78 \
     -DBoost_ROOT=/usr/lib64/boost1.78 \
     -DBOOST_INCLUDEDIR=/usr/include/boost1.78 \
-    -DBOOST_LIBRARYDIR=/usr/lib64/boost1.78/lib \    
+    -DBOOST_LIBRARYDIR=/usr/lib64/boost1.78/lib \
     -Dlibosmium_INCLUDE_DIR=${OSMIUM_INCLUDE_DIR} \
     -Dsol2_INCLUDE_DIR=${SOL2_INCLUDE_DIR} \
     ..
