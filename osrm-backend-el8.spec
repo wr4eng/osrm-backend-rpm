@@ -26,6 +26,7 @@ BuildRequires: zlib-devel
 BuildRequires: tbb-devel
 BuildRequires: python3
 BuildRequires: gcc-toolset-12-gcc-c++
+BuildRequires: gcc-toolset-12-gcc-plugin-annobin
 BuildRequires: boost1.78-devel
 
 Requires:       boost1.78
