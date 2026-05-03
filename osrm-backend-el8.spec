@@ -58,24 +58,20 @@ import re, pathlib
 
 path = pathlib.Path("include/util/json_container.hpp")
 src  = path.read_text()
-
 src = re.sub(
     r'// fwd\. decls\.\nstruct Object;\nstruct Array;\n',
     '// Forward-declare Value so Object/Array can be fully defined first.\nstruct Value;\n',
     src,
 )
-
 src = re.sub(
     r'using Value = std::variant<[^;]+>;\n',
     '',
     src,
 )
-
 src = src.replace(
     'std::unordered_map<std::string_view, Value>',
     'std::unordered_map<std::string, Value>',
 )
-
 insertion = (
     '\n'
     '// Value is a named struct inheriting std::variant so that:\n'
@@ -90,14 +86,12 @@ insertion = (
     '    using variant::operator=;\n'
     '};\n'
 )
-
 src = re.sub(
     r'(struct Array\s*\{[^}]*\};)',
     r'\1' + insertion,
     src,
     flags=re.DOTALL,
 )
-
 path.write_text(src)
 print("json_container.hpp patched successfully.")
 PYEOF
