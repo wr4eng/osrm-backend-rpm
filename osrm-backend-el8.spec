@@ -99,6 +99,10 @@ PYEOF
 
 %build
 source /opt/rh/gcc-toolset-12/enable
+export CFLAGS=$(echo "%{optflags}" | sed 's|-specs=[^ ]*annobin[^ ]*||g')
+export CXXFLAGS=$(echo "%{optflags}" | sed 's|-specs=[^ ]*annobin[^ ]*||g')
+export CFLAGS=$(echo "$CFLAGS" | sed 's|  | |g')
+export CXXFLAGS=$(echo "$CXXFLAGS" | sed 's|  | |g')
 export OSMIUM_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/libosmium-2.20.0/include
 export SOL2_INCLUDE_DIR=%{_builddir}/%{name}-%{version}/sol2-3.3.0/include
 export BOOST178_CMAKE_DIR=/usr/lib64/boost1.78
@@ -122,7 +126,8 @@ cd %{_vpath_builddir}
     -DBUILD_LIBRARY=ON \
     -DCMAKE_CXX_STANDARD=20 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-    -DCMAKE_CXX_FLAGS="%{optflags} -std=c++20 -Wno-maybe-uninitialized -I/usr/include/boost1.78" \
+    -DCMAKE_CXX_FLAGS="$CXXFLAGS -std=c++20 -Wno-maybe-uninitialized -I/usr/include/boost1.78" \
+    -DCMAKE_C_FLAGS="$CFLAGS" \
     -DCMAKE_PREFIX_PATH=/usr/lib64/boost1.78 \
     -DBoost_ROOT=/usr/lib64/boost1.78 \
     -DBOOST_INCLUDEDIR=/usr/include/boost1.78 \
