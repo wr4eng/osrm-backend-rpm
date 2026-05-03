@@ -25,7 +25,7 @@ BuildRequires: fmt-devel
 BuildRequires: zlib-devel
 BuildRequires: tbb-devel
 BuildRequires: python3
-BuildRequires: gcc-toolset-12
+BuildRequires: gcc-toolset-12-gcc-c++
 BuildRequires: boost1.78-devel
 
 Requires:       boost1.78
@@ -140,7 +140,7 @@ cd %{_vpath_builddir}
 %make_install
 cd ..
 
-# Move libraries from lib to lib64 if needed
+# Move libraries from lib to lib64 if neededBuildRequires:  gcc-toolset-12-gcc-c++
 if [ -d %{buildroot}%{_prefix}/lib ] && [ ! -d %{buildroot}%{_libdir} ]; then
     mkdir -p %{buildroot}%{_libdir}
     mv %{buildroot}%{_prefix}/lib/* %{buildroot}%{_libdir}/
