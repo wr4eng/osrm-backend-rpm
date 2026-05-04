@@ -21,7 +21,7 @@ BuildRequires:  boost-devel >= 1.70
 BuildRequires:  lua-devel >= 5.3
 BuildRequires:  tbb-devel >= 2020
 BuildRequires:  fmt-devel >= 8.0
-BuildRequires:  libosmium-devel >= 2.23.1
+BuildRequires:  libosmium-devel >= 2.22.0
 BuildRequires:  sol2-devel >= 3.5.0
 
 Requires:       boost >= 1.70
