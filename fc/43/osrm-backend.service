@@ -1,0 +1,64 @@
+# /usr/lib/systemd/system/osrm-backend.service
+
+[Unit]
+Description=Open Source Routing Machine (OSRM) Backend API Server
+Documentation=https://github.com/Project-OSRM/osrm-backend
+After=network-online.target local-fs.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=osrm
+Group=osrm
+
+# Environment configuration
+EnvironmentFile=-/etc/sysconfig/osrm-backend
+
+# Core execution command
+# Variables are expanded from /etc/sysconfig/osrm-backend
+ExecStart=/usr/bin/osrm-routed \
+    --dataset-name=${DATASET_NAME} \
+    --algorithm=${ALGORITHM} \
+    --ip=${BIND_IP} \
+    --port=${BIND_PORT} \
+    --threads=${THREADS} \
+    --max-viaroute-size=${MAX_VIA} \
+    --max-table-size=${MAX_TABLE} \
+    --max-nearest-size=${MAX_NEAREST} \
+    ${EXTRA_ARGS} \
+    /var/lib/osrm/${DATASET_NAME}.osrm
+
+# Security hardening (Fedora best practices)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+MemoryDenyWriteExecute=true
+LockPersonality=true
+
+# Allow read access to data directory and write to logs
+ReadWritePaths=/var/log/osrm /var/lib/osrm
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=osrm-backend
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+# Resource limits (adjust based on your hardware)
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
