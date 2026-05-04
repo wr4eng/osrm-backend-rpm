@@ -42,7 +42,7 @@ services via HTTP API and C++ library interface including Route, Table,
 Nearest, Match, Trip, and Tile.
 
 
-# ── devel subpackage ────────────────────────────────────────────────────────
+# ── devel subpackage 
 %package        devel
 Summary:        Development files for %{name}
 Requires:       %{name}%{?_isa} = %{version}-%{release}
@@ -52,7 +52,7 @@ Headers, unversioned shared-library symlink, and pkg-config file for
 developing applications that link against the OSRM library.
 
 
-# ── prep ────────────────────────────────────────────────────────────────────
+# ── prep 
 %prep
 %autosetup -p1 -n %{name}-%{version}
 
@@ -61,7 +61,7 @@ developing applications that link against the OSRM library.
 sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 
 
-# ── build ───────────────────────────────────────────────────────────────────
+# ── build 
 %build
 %cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -85,7 +85,7 @@ sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 # libfoo.so itself becomes the -devel unversioned symlink.
 
 
-# ── install ──────────────────────────────────────────────────────────────────
+# ── install 
 %install
 %cmake_install
 
@@ -131,7 +131,7 @@ find %{_builddir}/%{name}-%{version} -maxdepth 1 -type f \
     -exec install -m 0644 -t %{buildroot}%{_licensedir}/%{name}/ {} +
 
 
-# ── scriptlets ───────────────────────────────────────────────────────────────
+# ── scriptlets 
 %pre
 getent group  osrm >/dev/null || groupadd -r osrm
 getent passwd osrm >/dev/null || \
@@ -153,7 +153,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 
-# ── file lists ───────────────────────────────────────────────────────────────
+# ── file lists 
 
 # Main package: binaries + versioned .so files
 # libosrm.so.26.4.1  (real ELF shared object)
@@ -186,7 +186,7 @@ fi
 %{_libdir}/pkgconfig/libosrm.pc
 
 
-# ── changelog ────────────────────────────────────────────────────────────────
+# ── changelog 
 %changelog
 * Mon May 04 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-8
 - Inject SOVERSION in %%install: rename upstream unversioned .so to
