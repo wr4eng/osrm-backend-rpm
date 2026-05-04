@@ -1,6 +1,6 @@
 Name:           osrm-backend
 Version:        26.4.1
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        High performance routing engine for OpenStreetMap data
 
 %undefine _lto_cflags
@@ -42,7 +42,7 @@ services via HTTP API and C++ library interface including Route, Table,
 Nearest, Match, Trip, and Tile.
 
 
-# devel subpackage
+# ── devel subpackage 
 %package        devel
 Summary:        Development files for %{name}
 Requires:       %{name}%{?_isa} = %{version}-%{release}
@@ -52,7 +52,7 @@ Headers, unversioned shared-library symlink, and pkg-config file for
 developing applications that link against the OSRM library.
 
 
-# prep
+# ── prep 
 %prep
 %autosetup -p1 -n %{name}-%{version}
 
@@ -61,7 +61,7 @@ developing applications that link against the OSRM library.
 sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 
 
-# build
+# ── build 
 %build
 %cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -79,17 +79,45 @@ sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 
 %cmake_build
 
+# ── post-build: inject SOVERSION into every installed .so ────────────────────
+# Upstream does not set SOVERSION; we use the package major version (26).
+# For each libfoo.so we produce libfoo.so.26.4.1 (real) and libfoo.so.26 (soname symlink).
+# libfoo.so itself becomes the -devel unversioned symlink.
 
-# install
+
+# ── install 
 %install
 %cmake_install
 
-# Move libraries from lib → lib64 when the distro uses lib64
-if [ -d %{buildroot}%{_prefix}/lib ] && [ ! -d %{buildroot}%{_libdir} ]; then
-    mkdir -p %{buildroot}%{_libdir}
-    mv %{buildroot}%{_prefix}/lib/* %{buildroot}%{_libdir}/
-    rmdir %{buildroot}%{_prefix}/lib
+# Move lib → lib64 when cmake installed into the wrong place.
+# We compare resolved paths so this is a no-op when they are the same.
+_src=%{buildroot}%{_prefix}/lib
+_dst=%{buildroot}%{_libdir}
+if [ -d "$_src" ] && [ "$(readlink -f $_src)" != "$(readlink -f $_dst)" ]; then
+    mkdir -p "$_dst"
+    cp -a "$_src"/. "$_dst"/
+    rm -rf "$_src"
 fi
+
+# ── Inject SOVERSION: upstream builds unversioned .so files only. ─────────────
+# Fedora policy requires:
+#   %{_libdir}/libfoo.so.X.Y.Z   – real shared object (main package)
+#   %{_libdir}/libfoo.so.X       – soname symlink     (main package)
+#   %{_libdir}/libfoo.so         – unversioned symlink (-devel package)
+#
+# We implement this by: rename the installed .so to .so.%{version}, then
+# create the soname (.so.major) and unversioned (.so) symlinks.
+_major=$(echo %{version} | cut -d. -f1)   # e.g. "26"
+for _lib in %{buildroot}%{_libdir}/lib*.so; do
+    [ -f "$_lib" ] || continue             # skip if glob is empty
+    _base=${_lib%.so}                      # e.g. …/libosrm
+    # real file
+    mv "$_lib" "${_base}.so.%{version}"
+    # soname symlink  libosrm.so.26 → libosrm.so.26.4.1
+    ln -sf "$(basename ${_base}.so.%{version})" "${_base}.so.${_major}"
+    # unversioned symlink  libosrm.so → libosrm.so.26
+    ln -sf "$(basename ${_base}.so.${_major})" "${_lib}"
+done
 
 install -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
@@ -103,7 +131,7 @@ find %{_builddir}/%{name}-%{version} -maxdepth 1 -type f \
     -exec install -m 0644 -t %{buildroot}%{_licensedir}/%{name}/ {} +
 
 
-# scriptlets
+# ── scriptlets 
 %pre
 getent group  osrm >/dev/null || groupadd -r osrm
 getent passwd osrm >/dev/null || \
@@ -125,10 +153,11 @@ if [ $1 -eq 0 ]; then
 fi
 
 
-# file lists
+# ── file lists 
 
-# Main package: binaries + versioned .so files (libosrm.so.X.Y.Z / libosrm.so.X)
-# The unversioned symlink (libosrm.so) belongs in -devel.
+# Main package: binaries + versioned .so files
+# libosrm.so.26.4.1  (real ELF shared object)
+# libosrm.so.26      (soname symlink)
 %files
 %{_bindir}/osrm-extract
 %{_bindir}/osrm-partition
@@ -138,8 +167,7 @@ fi
 %{_bindir}/osrm-datastore
 %{_bindir}/osrm-components
 %{_bindir}/osrm-io-benchmark
-# Versioned shared libraries only (libosrm.so.X and libosrm.so.X.Y.Z)
-%{_libdir}/libosrm.so.*
+%{_libdir}/libosrm*.so.*
 %{_datadir}/osrm/
 %{_unitdir}/%{name}.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
@@ -149,17 +177,26 @@ fi
 %license %{_licensedir}/%{name}/
 
 
-# -devel package: headers + unversioned .so symlink + pkg-config
+# -devel package: headers + unversioned .so symlinks + pkg-config
+# libosrm.so  (unversioned symlink, needed only at link time with -losrm)
 %files devel
 %{_includedir}/osrm/
 %{_includedir}/flatbuffers/
-# Unversioned symlink (libosrm.so → libosrm.so.X) for linking at build time
-%{_libdir}/libosrm.so
+%{_libdir}/libosrm*.so
 %{_libdir}/pkgconfig/libosrm.pc
 
 
-# changelog
+# ── changelog 
 %changelog
+* Mon May 04 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-8
+- Inject SOVERSION in %%install: rename upstream unversioned .so to
+  .so.%%{version}, create soname symlink .so.MAJOR, keep .so as unversioned
+  symlink for -devel; upstream CMake does not set SOVERSION at all
+- Fix lib→lib64 mv: use readlink -f comparison instead of [ ! -d ] so the
+  move actually fires on x86_64 where lib64 already exists
+- %%files main: use libosrm*.so.* glob (versioned real files + soname symlinks)
+- %%files devel: use libosrm*.so glob (unversioned symlinks only)
+
 * Mon May 04 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-7
 - Add -devel subpackage; move headers and unversioned .so symlink there
 - Main package now owns only versioned .so files (libosrm.so.*)
