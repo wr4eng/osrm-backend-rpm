@@ -21,7 +21,7 @@ BuildRequires:  boost-devel >= 1.70
 BuildRequires:  lua-devel >= 5.3
 BuildRequires:  tbb-devel >= 2020
 BuildRequires:  fmt-devel >= 8.0
-BuildRequires:  libosmium-devel >= 2.22.0
+BuildRequires:  libosmium-devel >= 2.20.0
 BuildRequires:  sol2-devel >= 3.5.0
 
 Requires:       boost >= 1.70
@@ -30,8 +30,8 @@ Requires:       tbb >= 2020
 Requires:       fmt >= 8.0
 Requires:       expat
 Requires:       bzip2
-Requires(pre):  shadow-utils
 
+Requires(pre):  shadow-utils
 Provides:       user(osrm)
 Provides:       group(osrm)
 
@@ -41,16 +41,27 @@ in C++17 designed to run on OpenStreetMap data. It supports various routing
 services via HTTP API and C++ library interface including Route, Table,
 Nearest, Match, Trip, and Tile.
 
+
+# devel subpackage
+%package        devel
+Summary:        Development files for %{name}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+
+%description    devel
+Headers, unversioned shared-library symlink, and pkg-config file for
+developing applications that link against the OSRM library.
+
+
+# prep
 %prep
 %autosetup -p1 -n %{name}-%{version}
 
-## Neutralize -Werror in all CMake files
-#grep -rl --include="CMakeLists.txt" --include="*.cmake" "\-Werror" . | \
-#    xargs sed -i 's/-Werror\b/-Wno-error/g'
-
-## Fix missing <unistd.h> in io-benchmark.cpp — POSIX functions write/read/close/lseek
+# Fix missing <unistd.h> in io-benchmark.cpp
+# POSIX functions write/read/close/lseek are undeclared without it
 sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 
+
+# build
 %build
 %cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -68,10 +79,12 @@ sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 
 %cmake_build
 
+
+# install
 %install
 %cmake_install
 
-# Move libraries from lib to lib64 if needed
+# Move libraries from lib → lib64 when the distro uses lib64
 if [ -d %{buildroot}%{_prefix}/lib ] && [ ! -d %{buildroot}%{_libdir} ]; then
     mkdir -p %{buildroot}%{_libdir}
     mv %{buildroot}%{_prefix}/lib/* %{buildroot}%{_libdir}/
@@ -80,18 +93,22 @@ fi
 
 install -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
+
 install -d -m 0755 %{buildroot}/var/lib/osrm
 install -d -m 0755 %{buildroot}/var/log/osrm
 
 install -m 0755 -d %{buildroot}%{_licensedir}/%{name}/
-find %{_builddir}/%{name}-%{version} -maxdepth 1 -type f \( -iname 'license*' -o -iname 'copying*' \) \
+find %{_builddir}/%{name}-%{version} -maxdepth 1 -type f \
+    \( -iname 'license*' -o -iname 'copying*' \) \
     -exec install -m 0644 -t %{buildroot}%{_licensedir}/%{name}/ {} +
 
+
+# scriptlets
 %pre
-getent group osrm >/dev/null || groupadd -r osrm
+getent group  osrm >/dev/null || groupadd -r osrm
 getent passwd osrm >/dev/null || \
     useradd -r -g osrm -d /var/lib/osrm -s /sbin/nologin \
-    -c "OSRM Backend service user" osrm
+            -c "OSRM Backend service user" osrm
 exit 0
 
 %post
@@ -103,10 +120,15 @@ exit 0
 %postun
 %systemd_postun_with_restart %{name}.service
 if [ $1 -eq 0 ]; then
-    userdel osrm 2>/dev/null || :
+    userdel  osrm 2>/dev/null || :
     groupdel osrm 2>/dev/null || :
 fi
 
+
+# file lists
+
+# Main package: binaries + versioned .so files (libosrm.so.X.Y.Z / libosrm.so.X)
+# The unversioned symlink (libosrm.so) belongs in -devel.
 %files
 %{_bindir}/osrm-extract
 %{_bindir}/osrm-partition
@@ -116,10 +138,8 @@ fi
 %{_bindir}/osrm-datastore
 %{_bindir}/osrm-components
 %{_bindir}/osrm-io-benchmark
-%{_libdir}/libosrm*.so
-%{_libdir}/pkgconfig/libosrm.pc
-%{_includedir}/osrm/
-%{_includedir}/flatbuffers/
+# Versioned shared libraries only (libosrm.so.X and libosrm.so.X.Y.Z)
+%{_libdir}/libosrm.so.*
 %{_datadir}/osrm/
 %{_unitdir}/%{name}.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
@@ -128,12 +148,33 @@ fi
 %doc README.md
 %license %{_licensedir}/%{name}/
 
+
+# -devel package: headers + unversioned .so symlink + pkg-config
+%files devel
+%{_includedir}/osrm/
+%{_includedir}/flatbuffers/
+# Unversioned symlink (libosrm.so → libosrm.so.X) for linking at build time
+%{_libdir}/libosrm.so
+%{_libdir}/pkgconfig/libosrm.pc
+
+
+# changelog
 %changelog
+* Mon May 04 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-7
+- Add -devel subpackage; move headers and unversioned .so symlink there
+- Main package now owns only versioned .so files (libosrm.so.*)
+- Fixes Fedora packaging policy violations:
+    * Header files must be in -devel subpackage
+    * Unversioned .so symlink must be in -devel subpackage
+    * Versioned .so files go directly in %%{_libdir}
+
 * Sun May 03 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-6
 - Rebuild without Neutralize -Werror in all CMake files
+
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-5
 - Fix missing #include <unistd.h> in tools/io-benchmark.cpp; POSIX functions
   write/read/close/lseek are undeclared without it on GCC with strict headers
+
 * Sat May 02 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-4
 - Fedora-only build using system libosmium >= 2.23.1 and sol2 >= 3.5.0
 - Removed RHEL 8, RHEL 9, and all platform conditionals
