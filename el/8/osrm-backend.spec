@@ -56,7 +56,7 @@ developing applications that link against the OSRM library.
 %prep
 %autosetup -p1 -n %{name}-%{version}
 
-# Fix missing <unistd.h> in io-benchmark.cpp
+# Fix missing <unistd.h> in io-benchmark.cpp 
 # POSIX functions write/read/close/lseek are undeclared without it
 sed -i '1s|^|#include <unistd.h>\n|' src/tools/io-benchmark.cpp
 
