@@ -1,6 +1,6 @@
 Name:           osrm-backend
 Version:        26.4.1
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        High performance routing engine for OpenStreetMap data
 
 %undefine _lto_cflags
