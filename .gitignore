@@ -3,3 +3,6 @@ src/*
 src/
 *.old
 *.txt
+.copr/
+.copr/*
+
