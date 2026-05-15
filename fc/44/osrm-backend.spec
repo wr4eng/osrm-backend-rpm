@@ -1,6 +1,6 @@
 Name:           osrm-backend
-Version:        26.4.1
-Release:        8%{?dist}
+Version:        26.5.0
+Release:        1%{?dist}
 Summary:        High performance routing engine for OpenStreetMap data
 
 %undefine _lto_cflags
@@ -188,6 +188,9 @@ fi
 
 # ── changelog 
 %changelog
+* Fri May 15 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.5.0-1
+- Update 26.5.0 upstream
+
 * Mon May 04 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-8
 - Inject SOVERSION in %%install: rename upstream unversioned .so to
   .so.%%{version}, create soname symlink .so.MAJOR, keep .so as unversioned
