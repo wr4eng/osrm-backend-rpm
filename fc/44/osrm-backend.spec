@@ -23,6 +23,7 @@ BuildRequires:  tbb-devel >= 2020
 BuildRequires:  fmt-devel >= 8.0
 BuildRequires:  libosmium-devel >= 2.23.1
 BuildRequires:  sol2-devel >= 3.5.0
+BuildRequires:  libarchive-devel >= 3.8.0
 
 Requires:       boost >= 1.70
 Requires:       lua >= 5.3
@@ -30,6 +31,7 @@ Requires:       tbb >= 2020
 Requires:       fmt >= 8.0
 Requires:       expat
 Requires:       bzip2
+Requires:       libarchive >= 3.8.0
 
 Requires(pre):  shadow-utils
 Provides:       user(osrm)
