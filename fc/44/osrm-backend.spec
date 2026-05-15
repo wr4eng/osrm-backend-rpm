@@ -1,6 +1,6 @@
 Name:           osrm-backend
-Version:        26.5.0
-Release:        1%{?dist}
+Version:        26.4.1
+Release:        8%{?dist}
 Summary:        High performance routing engine for OpenStreetMap data
 
 %undefine _lto_cflags
@@ -23,9 +23,6 @@ BuildRequires:  tbb-devel >= 2020
 BuildRequires:  fmt-devel >= 8.0
 BuildRequires:  libosmium-devel >= 2.23.1
 BuildRequires:  sol2-devel >= 3.5.0
-BuildRequires:  libarchive-devel >= 3.8.0
-BuildRequires:  rapidjson-devel >= 1.1.0
-BuildRequires:  flatbuffers-devel >= 25.12.0
 
 Requires:       boost >= 1.70
 Requires:       lua >= 5.3
@@ -33,8 +30,6 @@ Requires:       tbb >= 2020
 Requires:       fmt >= 8.0
 Requires:       expat
 Requires:       bzip2
-Requires:       libarchive >= 3.8.0
-Requires:       flatbuffers >= 25.12.0
 
 Requires(pre):  shadow-utils
 Provides:       user(osrm)
@@ -193,9 +188,6 @@ fi
 
 # ── changelog 
 %changelog
-* Fri May 15 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.5.0-1
-- Update 26.5.0 upstream
-
 * Mon May 04 2026 W. Hadi HSW <wra.eng@gmail.com> - 26.4.1-8
 - Inject SOVERSION in %%install: rename upstream unversioned .so to
   .so.%%{version}, create soname symlink .so.MAJOR, keep .so as unversioned
